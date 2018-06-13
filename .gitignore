@@ -106,4 +106,4 @@ venv.bak/
 
 # data
 examples/sample model/data/*
-examples/sample model/exported models/
+examples/export_keras_model/exported_models/*
