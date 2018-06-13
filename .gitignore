@@ -105,4 +105,5 @@ venv.bak/
 .mypy_cache/
 
 # data
-sample model/data/*
+examples/sample model/data/*
+examples/sample model/exported models/
