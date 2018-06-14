@@ -3,12 +3,12 @@ import pandas as pd
 import numpy as np
 
 from keras.models import Model
-from keras.layers import Dense, LSTM, Input
+from keras.layers import Dense, LSTM, Input, Embedding
 from keras.optimizers import RMSprop
 from keras.callbacks import ModelCheckpoint
 
 from constants import BATCH_SIZE, EPOCHS, MAX_TOKENS, CHARS
-from utils import clean_data, onehot_y
+from utils import clean_data_encoded, y_onehot
 
 WORKING_DIR = os.getcwd()
 
@@ -19,14 +19,15 @@ VAL_FILE = os.path.join(WORKING_DIR, "data/test.csv")
 def load_dataset(file_path, num_samples):
     df = pd.read_csv(file_path, usecols=[0, 1], nrows=num_samples)
     df.columns = ['rating', 'title']
-    df['title_converted'] = df['title'].apply(lambda x: clean_data(x))
-    df['rating_converted'] = df['rating'].apply(lambda y: onehot_y(y))
+    df['title_converted'] = df['title'].apply(lambda x: clean_data_encoded(x))
+    df['rating_converted'] = df['rating'].apply(lambda y: y_onehot(y))
     return np.array(df.rating_converted.tolist()), np.array(df.title_converted.tolist())
 
 
 def get_model(print_summary=False, lr=0.01):
-    model_input = Input(shape=(MAX_TOKENS, len(CHARS)))
-    x = LSTM(128)(model_input)
+    model_input = Input(shape=(MAX_TOKENS,))
+    x = Embedding(input_dim=len(CHARS), output_dim=10, input_length=MAX_TOKENS)(model_input)
+    x = LSTM(64)(x)
     output = Dense(5, activation='softmax')(x)
 
     model = Model(model_input, output)
