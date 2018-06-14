@@ -60,8 +60,8 @@ if __name__ == '__main__':
 
     test_sentence = "horrible book, don't buy it"
     print("Testing the model with `{}` ...".format(test_sentence))
-    test_vector = clean_data(test_sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS)
-    model.predict(test_vector.reshape(1, MAX_TOKENS, len(CHARS)))
+    test_vector = clean_data_encoded(test_sentence, max_tokens=MAX_TOKENS)
+    model.predict(test_vector.reshape(1, MAX_TOKENS))
 
     print("Preserving the model ...")
     preserve_model(model)
