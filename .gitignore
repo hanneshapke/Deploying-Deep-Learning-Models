@@ -105,5 +105,6 @@ venv.bak/
 .mypy_cache/
 
 # data
-examples/sample model/data/*
+examples/sample_model/data/*
 examples/export_keras_model/exported_models/*
+examples/sample_model/preserved_model/*
