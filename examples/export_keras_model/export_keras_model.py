@@ -18,10 +18,10 @@ FLAGS = tf.app.flags.FLAGS
 
 
 def depreserve_model(path=WORKING_DIR):
-    with open(os.path.join(path, 'examples/sample model/preserved model/model.json'), 'r') as json_file:
+    with open(os.path.join(path, 'examples/sample_model/preserved model/model.json'), 'r') as json_file:
         model = model_from_json(json_file.read())
 
-    model.load_weights(os.path.join(path, 'examples/sample model/preserved model/model.h5'))
+    model.load_weights(os.path.join(path, 'examples/sample_model/preserved model/model.h5'))
     return model
 
 def export_keras_model_to_protobuf(model, model_name):
