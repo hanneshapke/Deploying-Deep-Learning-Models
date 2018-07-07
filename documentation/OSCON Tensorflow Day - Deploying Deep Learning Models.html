@@ -1,0 +1,751 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Deploying Deep Learning Models</title>
+    <meta charset="utf-8" />
+
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif);
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+
+      body {
+        font-family: 'Droid Serif';
+        font-size: medium;
+      }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: 400;
+        margin-bottom: 0;
+      }
+      .small * {
+        font-size: small !important;
+      }
+      code {
+        border-radius: 5px;
+      }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+      .inverse h3, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 1em;
+      }
+      .footnote {
+        position: absolute;
+        font-size: small;
+        bottom: 3em;
+        right: 3em;
+      }
+      /* styling only necessary for displaying source */
+      #source {
+        position: absolute;
+        display: none;
+        font-family: monospace;
+        font-size: medium;
+        background: #333333;
+        color: white;
+        padding: 10px;
+        text-align: left;
+        width: 65%;
+        height: 70%;
+        z-index: 1000;
+      }
+      #overlay {
+        position: absolute;
+        display: none;
+        background: black;
+        width: 100%;
+        height: 100%;
+        opacity: 0.2;
+        z-index: 999;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source" readonly>
+class: center, middle, inverse
+
+# Deploying Deep Learning Models
+## OSCON Tensorflow Day 2018
+
+#### Hannes Hapke
+#### @hanneshapke
+
+.footnote[
+  Slides available at https://github.com/hanneshapke
+]
+
+---
+class: center, middle, inverse
+
+# Does the following scenario sound familiar?
+
+---
+class: inverse
+
+### Joe (data scientist): Hey Jane, my model is validated and tested. I would like to deploy it. 
+### Jane (back-end engineer): Great, do you have an API for it? 
+--
+
+### Joe: API? Our model runs on TF/Python. The entire back-end runs on Ruby. I haven’t written Ruby in years … 
+### Jane: Ufff, I have never written Tensorflow code. Is that a Python library? 
+--
+
+### Joe: Hm, I guess, I’ll write some Ruby API code then.
+
+---
+class: center, middle
+
+# What's the problem? 
+---
+class: center, middle
+
+# Who owns the API?
+---
+class: center, middle
+
+# Data science code deployed to API instances?
+---
+class: center, middle
+
+# Different language expertises are needed
+---
+class: center, middle
+
+# Coordinate release cycles between teams?
+---
+class: center, middle
+
+# Coordination about model versioning
+---
+
+class: center, middle
+
+# Hi, I'm Hannes.
+
+---
+
+# Agenda
+
+* Requirements for Model Deployments
+* Sample project
+* How not to deploy
+* Tensorflow Serving on premise
+* Google Cloud Services
+* Deploying with Kubeflow
+
+---
+
+# Model deployments should ...
+--
+
+1. Separate data science code from backend code
+--
+
+2. Reduce boilerplate code
+--
+
+3. Allow isolation of memory and CPU requirements
+--
+
+4. Support multiple models
+--
+
+5. Allow asyncronous requests
+---
+
+name: sample project
+
+# Sample Project
+
+Let's predict Amazon product ratings based on the comments with a small LSTM network.
+.small[
+```python
+text_input = Input(shape=(MAX_TOKENS, len(CHARS)))
+x = LSTM(128)(text_input)
+output = Dense(5, activation='softmax')(x)
+model = Model(inputs=text_input, outputs=output)
+optimizer = RMSprop(lr=0.01)
+model.compile(loss='categorical_crossentropy', optimizer=optimizer)
+```
+]
+
+.small[
+```python
+model.fit(x_train, y_train, 
+          batch_size=BATCH_SIZE, epochs=EPOCHS, 
+          verbose=1, validation_data=(x_test, y_test),
+          callbacks=[keras.callbacks.ModelCheckpoint('/tmp/amazon_ratings', 
+                                                     monitor='val_loss', 
+                                                     verbose=1, save_best_only=True,
+                                                     save_weights_only=False, 
+                                                     mode='auto', period=1)])
+```
+]
+
+--- 
+## Testing the Models
+
+.small[
+```python
+test_sentence = "horrible book, don't buy it"
+test_vector = clean_data(test_sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS)
+model.predict(test_vector.reshape(1, MAX_TOKENS, len(CHARS)))
+```
+]
+
+.small[
+```python
+test_sentence = "Awesome product."
+test_vector = clean_data(test_sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS)
+model.predict(test_vector.reshape(1, MAX_TOKENS, len(CHARS)))
+```
+]
+
+---
+class: center, middle, inverse
+
+# How not to deploy a model ...
+
+---
+
+# Deploy with Flask + Keras
+
+.small[
+```python
+@app.route("/predict", methods=["POST"])
+def predict():
+    # initialize the data dictionary that will be returned from the
+    # view
+    data = {"success": False}
+
+    # ensure an image was properly uploaded to our endpoint
+    if flask.request.method == "POST":
+        if flask.request.files.get("image"):
+            # read the image in PIL format
+            image = flask.request.files["image"].read()
+            image = Image.open(io.BytesIO(image))
+
+            # preprocess the image and prepare it for classification
+            image = prepare_image(image, target=(224, 224))
+
+            # classify the input image and then initialize the list
+            # of predictions to return to the client
+            preds = model.predict(image)
+            results = imagenet_utils.decode_predictions(preds)
+            data["predictions"] = []
+
+            # loop over the results and add them to the list of
+            # returned predictions
+            for (imagenetID, label, prob) in results[0]:
+                r = {"label": label, "probability": float(prob)}
+                data["predictions"].append(r)
+
+            # indicate that the request was a success
+            data["success"] = True
+
+    # return the data dictionary as a JSON response
+    return flask.jsonify(data)
+```
+]
+
+.footnote[
+  Code snippet from [Keras Blog](https://blog.keras.io/building-a-simple-keras-deep-learning-rest-api.html)
+]
+---
+class: center, middle, inverse
+
+# Don't deploy that way if can avoid it.
+---
+
+## Why? 
+
+--
+
+1. Mix of data science and backend code
+
+--
+
+2. Boilerplate API code
+
+--
+
+3. API instances need enough memory to load models
+
+--
+
+4. Multiple models?
+
+--
+
+5. No asyncronous requests
+
+---
+class: center, middle, inverse
+
+# Use Tensorflow Serving instead.
+---
+
+class: center, middle, inverse
+
+# But before that, let's chat about some dependencies.
+---
+
+# Dependencies
+
+### ProtoBuf
+
+### Bazel
+
+### gRPC
+
+### REST
+
+---
+class: center, middle, inverse
+
+# Welcome Tensorflow Serving!
+---
+# Steps to deploy a model
+ 
+--
+
+1. Export model structure and weights as protobuf
+
+--
+
+2. Set up the Tensorflow Server
+
+--
+
+3. Create a gRPC client
+
+--
+
+4. Load the model
+
+---
+
+## Export our Keras model to Protobuf
+
+.small[
+```python
+import os
+from keras import backend as K
+import tensorflow as tf
+
+tf.app.flags.DEFINE_integer('training_iteration', 1000, 'number of training iterations.')
+tf.app.flags.DEFINE_integer('model_version', 1, 'version number of the model.')
+tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
+FLAGS = tf.app.flags.FLAGS
+
+export_path_base = '/tmp/amazon_reviews'
+export_path = os.path.join(
+      tf.compat.as_bytes(export_path_base),
+      tf.compat.as_bytes(str(FLAGS.model_version)))
+print('Exporting trained model to', export_path)
+
+builder = tf.saved_model.builder.SavedModelBuilder(export_path)
+
+signature = tf.saved_model.signature_def_utils.predict_signature_def(
+    inputs={'input': model.input}, outputs={'rating_prob': model.output})
+
+builder.add_meta_graph_and_variables(
+      sess=K.get_session(), tags=[tf.saved_model.tag_constants.SERVING],
+      signature_def_map={
+          tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
+              signature
+      })
+
+builder.save()
+
+```
+]
+---
+class: center, middle, inverse
+
+# Let's unpack what we just saw.
+---
+
+# Flags
+```python
+import tensorflow as tf
+
+tf.app.flags.DEFINE_integer('training_iteration', 1000, 
+                            'number of training iterations.')
+tf.app.flags.DEFINE_integer('model_version', 1, 
+                            'version number of the model.')
+tf.app.flags.DEFINE_string('work_dir', '/tmp', 
+                           'Working directory.')
+FLAGS = tf.app.flags.FLAGS
+```
+---
+
+# Model Signatures
+
+.small[
+```python
+signature = tf.saved_model.signature_def_utils.predict_signature_def(
+    inputs={'input': model.input}, outputs={'rating_prob': model.output})
+
+builder.add_meta_graph_and_variables(
+      sess=K.get_session(), tags=[tf.saved_model.tag_constants.SERVING],
+      signature_def_map={
+          tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
+              signature
+      })
+```
+]
+---
+
+# Exporting the model
+
+```python
+export_path_base = '/tmp/amazon_reviews'
+export_path = os.path.join(
+      tf.compat.as_bytes(export_path_base),
+      tf.compat.as_bytes(str(FLAGS.model_version)))
+print('Exporting trained model to', export_path)
+
+builder = tf.saved_model.builder.SavedModelBuilder(export_path)
+...
+builder.save()
+
+```
+---
+class: center, middle, inverse
+
+# Now you have exported your model.
+---
+
+## You should find these protobuf files in your folder structure
+
+SCREENSHOT
+
+---
+
+class: center, middle, inverse
+
+# Let's set up your Tensorflow server
+---
+
+# Creating a Tensorflow Serving Environment
+
+* If you need optimizations, clone the TF Serving repo and build your server with Bazel
+
+* Otherwise install Tensorflow server in a Docker container
+
+```terminal
+$ git clone hanneshapke/docker ...
+cd docker...
+
+$ docker build --pull -t $USER/tensorflow-serving-devel-cpu 
+                      -f Dockerfile.devel .
+```
+
+Start up the container with 
+
+```terminal
+$ docker run -ti -p 9000:9000 -v "/tmp/models":/models /bin/bash
+```
+
+---
+
+## Start Tensorflow Serving
+
+.small[
+```terminal
+$[docker bash] tensorflow_model_server --port=9000 
+                                       --model_name={model_name}
+                                       --model_base_path=/models/{model_name}
+```
+]
+
+--
+
+This should generate similar output
+
+.small[
+```terminal
+2018-06-05 21:44:51.541701: I
+tensorflow_serving/model_servers/main.cc:154 Building single TensorFlow
+model file config: model_name: amazon_reviews model_base_path:
+/amazon_reviews/
+2018-06-05 21:44:51.541983: I tensorflow_serving/model_servers/server_core.cc:444 Adding/updating
+models.
+2018-06-05 21:44:51.542026: I tensorflow_serving/model_servers/server_core.cc:499 (Re-)adding model:
+amazon_reviews
+2018-06-05 21:44:51.655507: I tensorflow_serving/core/basic_manager.cc:716 Successfully reserved
+resources to load servable {name: amazon_reviews version: 5}
+2018-06-05 21:44:51.655575: I
+tensorflow_serving/core/loader_harness.cc:66 Approving load for
+servable version {name: amazon_reviews version: 5}
+2018-06-05 21:44:51.655609: I tensorflow_serving/core/loader_harness.cc:74 Loading servable version
+{name: amazon_reviews version: 5}
+...
+SavedModel load for tags { serve }; Status: success. Took 224320 microseconds.
+2018-06-05 21:44:51.895943: I tensorflow_serving/core/loader_harness.cc:86 Successfully loaded
+servable version {name: amazon_reviews version: 5}
+2018-06-05 21:44:51.898859: I tensorflow_serving/model_servers/main.cc:316 Running ModelServer at
+0.0.0.0:9000 ...
+```
+]
+
+---
+
+## Useful tips
+
+### Inspect your models 
+
+.small[
+```terminal
+$[docker bash] saved_model_cli show --dir=/models/{model_name}/{version_number}
+                                    --tag_set serve 
+                                    --signature_def serving_default
+```
+]
+
+---
+
+# Tensorflow Serving Client
+
+## Dependecies
+
+- tensorflow_serving
+
+- grpc
+
+```terminal
+$ pip install tensorflow-serving-api grpc
+```
+
+.footnote[
+  Using Python 3? [Python 3 compliance](https://github.com/tensorflow/serving/pull/685/files) [Fix Python 3 issues](https://github.com/tensorflo
+w/serving/issues/700)
+]
+
+---
+
+# Tensorflow Serving Client
+
+## Connecting to the RPC host
+
+```python
+from grpc.beta import implementations
+from tensorflow_serving.apis import prediction_service_pb2
+
+def get_stub(host='127.0.0.1', port='9000'):
+    channel = implementations.insecure_channel(host, int(port))
+    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    return stub
+```
+
+---
+
+# Tensorflow Serving Client
+
+## Request prediction
+
+Very barebone implementation!
+
+```python
+def get_model_prediction(model_input, stub, model_name='amazon_reviews', 
+                         signature_name='serving_default'):
+
+    request = predict_pb2.PredictRequest()
+    request.model_spec.name = model_name
+    request.model_spec.signature_name = signature_name
+    
+    request.inputs['input'].CopyFrom(
+        tf.contrib.util.make_tensor_proto(
+            model_input.reshape(1, 50, 45), 
+            verify_shape=True, 
+            shape=(1, 50, 45)))
+ 
+    response = stub.Predict.future(request, 5.0)  # 5 seconds
+    return response.result().outputs["rating_prob"].float_val
+```
+
+---
+
+# Tensorflow Serving Client
+
+## Request prediction from a specific model version
+
+```python
+request = predict_pb2.PredictRequest()
+request.model_spec.name = 'amazon_reviews'
+request.model_spec.version.value = 5
+```
+
+---
+
+# Tensorflow Serving Client
+
+## Obtain model meta data
+
+```python
+def get_model_meta(model_name, stub):
+    request = get_model_metadata_pb2.GetModelMetadataRequest()
+    request.model_spec.name = model_name
+    request.metadata_field.append("signature_def")
+    response = stub.GetModelMetadata(request, 5)
+    return response.metadata['signature_def']
+```
+
+## Obtain model version
+```python
+def get_model_version(model_name, stub):
+    request = get_model_metadata_pb2.GetModelMetadataRequest()
+    request.model_spec.name = model_name
+    request.metadata_field.append("signature_def")
+    response = stub.GetModelMetadata(request, 5)
+    return response.model_spec.version.value
+```
+
+---
+
+# Tensorflow Serving Client
+
+## Let's try it out 
+
+```python
+>>> get_model_prediction(model_input, stub)
+[0.9245200753211975, 0.07307500392198563, 0.002189033664762974,
+0.00012129579408792779, 9.459642751608044e-05]
+
+>>> get_model_version(model_name, stub)
+6L
+```
+
+---
+
+# Tensorflow Serving
+
+## Serve multiple models
+
+Provide a server config file _config.file_
+
+.small[
+```json
+model_config_list: {
+    config:{
+        name:"amazon_reviews",
+        base_path:"/models/{model_name}",
+        model_platform:"tensorflow",
+        model_version_policy: {
+            all: {}
+        }
+    },
+    config:{
+        name:"amazon_ratings",
+        base_path:"/models/{other_model_name}",
+        model_platform:"tensorflow",
+        model_version_policy: {
+            all: {}
+        }
+    }
+}
+```
+]
+
+---
+
+# Tensorflow Serving
+
+## Serve multiple models
+
+Start the server with the config file
+
+```terminal
+$ tensorflow_model_server --port=9000
+                          --model_config_file=/path/to/config/file.config
+```
+
+---
+
+# How to do A/B Testing
+
+...
+
+---
+
+## Good idea? 
+
+--
+
+1. No mix of data science and backend code
+
+--
+
+2. No boilerplate API code
+
+--
+
+3. APIs can be serverless
+
+--
+
+4. Multiple models? Of course.
+
+--
+
+5. Asyncronous requests. Heck yes!
+
+---
+
+# Serving Models via the Cloud 
+
+---
+
+# Kubeflow for all
+
+---
+
+class: center, middle, inverse
+
+# Thank you and happy deploying!
+
+### @hanneshapke
+
+
+
+
+    </textarea>
+
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+    <script type="text/javascript">
+      var hljs = remark.highlighter.engine;
+    </script>
+    <script src="terminal.language.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      var slideshow = remark.create({
+        highlightStyle: 'monokai',
+        // Customize slide number label, either using a format string..
+        slideNumberFormat: 'Slide %current% of %total%',
+        // .. or by using a format function
+        slideNumberFormat: function (current, total) {
+            return Math.round((1 - current / total) * 100)  + '% remaining';
+        },
+      });
+      // extract the embedded styling from ansi spans
+      var highlighted = document.querySelectorAll("code.terminal span.hljs-ansi");
+      Array.prototype.forEach.call(highlighted, function(next) {
+        next.insertAdjacentHTML("beforebegin", next.textContent);
+        next.parentNode.removeChild(next);
+      });
+    </script>
+    
+  </body>
+</html>
+
+<!--
+  vim:filetype=markdown
+-->
