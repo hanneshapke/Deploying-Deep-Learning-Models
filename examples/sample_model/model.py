@@ -12,8 +12,8 @@ from utils import clean_data_encoded, y_onehot
 
 WORKING_DIR = os.getcwd()
 
-TRAIN_FILE = os.path.join(WORKING_DIR, "data/train.csv")
-VAL_FILE = os.path.join(WORKING_DIR, "data/test.csv")
+TRAIN_FILE = os.path.join(WORKING_DIR, "examples/sample_model/data/train.csv")
+VAL_FILE = os.path.join(WORKING_DIR, "examples/sample_model/data/test.csv")
 
 
 def load_dataset(file_path, num_samples):
@@ -42,9 +42,9 @@ def get_model(print_summary=False, lr=0.01):
 
 def preserve_model(model):
     model_json = model.to_json()
-    with open(os.path.join(WORKING_DIR, 'preserved model/model.json'), 'w') as json_file:
+    with open(os.path.join(WORKING_DIR, 'examples/sample_model/preserved_model/model.json'), 'w') as json_file:
         json_file.write(model_json)
-    model.save_weights(os.path.join(WORKING_DIR, 'preserved model/model.h5'))
+    model.save_weights(os.path.join(WORKING_DIR, 'examples/sample_model/preserved_model/model.h5'))
 
 
 if __name__ == '__main__':
@@ -55,8 +55,8 @@ if __name__ == '__main__':
     print("Training the model ...")
     model = get_model()
     model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS, verbose=1, validation_data=(x_val, y_val),
-              callbacks=[ModelCheckpoint(os.path.join(WORKING_DIR, 'preserved model/model_checkpoint'), monitor='val_loss', verbose=1, save_best_only=True,
-              save_weights_only=False, mode='auto', period=1)])
+              callbacks=[ModelCheckpoint(os.path.join(WORKING_DIR, 'examples/sample_model/preserved_model/model_checkpoint'), 
+              monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=False, mode='auto', period=1)])
 
     test_sentence = "horrible book, don't buy it"
     print("Testing the model with `{}` ...".format(test_sentence))
