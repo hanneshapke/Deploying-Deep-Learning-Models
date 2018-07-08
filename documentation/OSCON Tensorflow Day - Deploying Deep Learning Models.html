@@ -443,8 +443,7 @@ class: center, middle, inverse
 * Otherwise install Tensorflow server in a Docker container
 
 ```terminal
-$ git clone hanneshapke/docker ...
-cd docker...
+$ git clone git@github.com:hanneshapke/Deploying_Deep_Learning_Models.git
 
 $ docker build --pull -t $USER/tensorflow-serving-devel-cpu 
                       -f Dockerfile.devel .
@@ -453,7 +452,9 @@ $ docker build --pull -t $USER/tensorflow-serving-devel-cpu
 Start up the container with 
 
 ```terminal
-$ docker run -ti -p 9000:9000 -v "/tmp/models":/models /bin/bash
+$ docker run -it -p 8500:8500 -p 8501:8501 
+             -v {model_path}/exported_models/amazon_review/:/models 
+             $USER/tensorflow-serving-devel-cpu:latest /bin/bash
 ```
 
 ---
@@ -702,6 +703,30 @@ $ tensorflow_model_server --port=9000
 ---
 
 # Serving Models via the Cloud 
+
+footnote install gsutils: https://cloud.google.com/storage/docs/gsutil_install
+Copy model gsutil cp -r inception gs://<bucket-name>
+
+
+ hannes@Hanness-MBP-2  ~  gsutil cp -r ~/Development/opensource/Deploying_Deep_Learning_Models/examples/export_keras_model/exported_models/amazon_review gs://model-server
+Copying file:///Users/hannes/Development/opensource/Deploying_Deep_Learning_Models/examples/export_keras_model/exported_models/amazon_review/1/saved_model.pb [Content-Type=application/octet-stream]...
+Copying file:///Users/hannes/Development/opensource/Deploying_Deep_Learning_Models/examples/export_keras_model/exported_models/amazon_review/1/variables/variables.data-00000-of-00001 [Content-Type=application/octet-stream]...
+Copying file:///Users/hannes/Development/opensource/Deploying_Deep_Learning_Models/examples/export_keras_model/exported_models/amazon_review/1/variables/variables.index [Content-Type=application/octet-stream]...
+- [3 files][198.6 KiB/198.6 KiB]
+Operation completed over 3 objects/198.6 KiB.
+
+
+ hannes@Hanness-MBP-2  ~  gsutil ls -r gs://model-server
+gs://model-server/amazon_review/:
+
+gs://model-server/amazon_review/1/:
+gs://model-server/amazon_review/1/saved_model.pb
+
+gs://model-server/amazon_review/1/variables/:
+gs://model-server/amazon_review/1/variables/variables.data-00000-of-00001
+gs://model-server/amazon_review/1/variables/variables.index
+
+https://cloud.google.com/ml-engine/docs/tensorflow/deploying-models
 
 ---
 
