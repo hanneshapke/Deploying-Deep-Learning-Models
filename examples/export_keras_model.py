@@ -10,7 +10,7 @@ WORKING_DIR = os.getcwd()
 try:
     tf.app.flags.DEFINE_integer('training_iteration', 1000, 'number of training iterations.')
     tf.app.flags.DEFINE_integer('model_version', 1, 'version number of the model.')
-    tf.app.flags.DEFINE_string('work_dir', os.path.join(WORKING_DIR, 'examples/export_keras_model/exported_models/'), 'Working directory.')
+    tf.app.flags.DEFINE_string('work_dir', os.path.join(WORKING_DIR, 'examples/sample_model/exported_models/'), 'Working directory.')
 except absl_flags._exceptions.DuplicateFlagError:
     pass
 

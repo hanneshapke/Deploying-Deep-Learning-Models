@@ -1,6 +1,6 @@
 import numpy as np
 
-from constants import MAX_TOKENS, CHARS
+from sample_model.constants import MAX_TOKENS, CHARS
 
 
 def clean_data_onehot(sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS):
