@@ -1,30 +1,40 @@
-from grpc.beta import implementations
-import tensorflow as tf
-from tensorflow_serving.apis import predict_pb2
-from tensorflow_serving.apis import prediction_service_pb2, get_model_metadata_pb2
+import json
+import requests
 
 
-def get_stub(host='127.0.0.1', port='9000'):
-    channel = implementations.insecure_channel(host, int(port))
-    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
-    return stub
+def get_rest_url(model_name, host='127.0.1', port='8501', verb='predict', version=None):
+    url = "http://{host}:{port}/v1/models/{model_name}".format(host=host, port=port, model_name=model_name)
+    if version:
+        url += 'versions/{version}'.format(version=version)
+    url += ':{verb}'.format(verb=verb)
+    return url
 
 
-def get_model_prediction(model_input, stub, model_name='amazon_reviews', signature_name='serving_default'):
+def get_model_prediction(model_input, model_name='amazon_review', signature_name='serving_default'):
     """ no error handling at all, just poc"""
-    request = predict_pb2.PredictRequest()
-    request.model_spec.name = model_name
-    request.model_spec.signature_name = signature_name
-    request.inputs['input'].CopyFrom(tf.contrib.util.make_tensor_proto(model_input.reshape(1, 50, 45),
-                                                                       verify_shape=True, shape=(1, 50, 45)))
-    response = stub.Predict.future(request, 5.0)  # 5 seconds
-    return response.result().outputs["rating_prob"].float_val
 
+    url = get_rest_url(model_name)
+    data = {"instances": [model_input.tolist()]}
 
-def get_model_version(model_name, stub):
-    request = get_model_metadata_pb2.GetModelMetadataRequest()
-    request.model_spec.name = 'amazon_reviews'
-    request.metadata_field.append("signature_def")
-    response = stub.GetModelMetadata(request, 10)
-    # signature of loaded model is available here: response.metadata['signature_def']
-    return response.model_spec.version.value
+    rv = requests.post(url, data=json.dumps(data))
+    if rv.status_code != requests.codes.ok:
+        rv.raise_for_status()
+    
+    return rv.json()['predictions']
+
+if __name__ == '__main__':
+    from sample_model.utils import clean_data_encoded
+
+    print("\nGenerate REST url ...")
+    url = get_rest_url(model_name='amazon_review')
+    print(url)
+    
+    while True:
+        print("\nEnter an Amazon review [:q for Quit]")
+        sentence = input()
+        if sentence == ':q':
+            break
+        model_input = clean_data_encoded(sentence)
+        model_prediction = get_model_prediction(model_input)
+        print("The model predicted ...")
+        print(model_prediction)
