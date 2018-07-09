@@ -80,6 +80,23 @@
   </head>
   <body>
     <textarea id="source" readonly>
+class: center, middle
+
+## Google's [Tensorflow Day](https://conferences.oreilly.com/oscon/oscon-or/public/schedule/full/tensorflow-day) at OSCON 2018
+
+#### [Registration](https://conferences.oreilly.com/oscon/oscon-or/public/register)
+
+All keynotes
+
+All sponsored tutorials
+
+All sponsored sessions
+
+Expo hall access
+
+90-day Safari membership
+
+---
 class: center, middle, inverse
 
 # Deploying Deep Learning Models
@@ -181,23 +198,23 @@ class: center, middle
 # Model deployments should ...
 --
 
-1. Separate data science code from backend code
+### 1. Separate data science code from backend code
 
 --
 
-2. Reduce boilerplate code
+### 2. Reduce boilerplate code
 
 --
 
-3. Allow isolation of memory and CPU requirements
+### 3. Allow isolation of memory and CPU requirements
 
 --
 
-4. Support multiple models
+### 4. Support multiple models
 
 --
 
-5. Allow asyncronous requests
+### 5. Allow asyncronous requests
 
 ---
 
@@ -207,7 +224,8 @@ class: center, middle
 
 Let's predict Amazon product ratings based on the comments with a small LSTM network.
 ```python
-text_input = Input(shape=(MAX_TOKENS, len(CHARS)))
+model_input = Input(shape=(MAX_TOKENS,))
+x = Embedding(input_dim=len(CHARS), output_dim=10, input_length=MAX_TOKENS)(model_input)
 x = LSTM(128)(text_input)
 output = Dense(5, activation='softmax')(x)
 model = Model(inputs=text_input, outputs=output)
@@ -308,23 +326,23 @@ class: center, middle, inverse
 
 --
 
-1. Mix of data science and backend code
+### 1. Mix of data science and backend code
 
 --
 
-2. Boilerplate API code
+### 2. Boilerplate API code
 
 --
 
-3. API instances need enough memory to load models
+### 3. API instances need enough memory to load models
 
 --
 
-4. Multiple models?
+### 4. Multiple models?
 
 --
 
-5. No asynchronous requests
+### 5. No asynchronous requests
 
 ---
 class: center, middle, inverse
@@ -334,10 +352,10 @@ class: center, middle, inverse
 
 class: center, middle, inverse
 
-# But before that, let's chat about some dependencies.
+# But before that, let's chat about some terms.
 ---
 
-# Dependencies
+# Important Terms 
 
 ### Protocol Buffers
 Protobufs are a method of serializing structured data. Binary format. 
@@ -360,19 +378,19 @@ class: center, middle, inverse
  
 --
 
-1. Export model structure and weights as protobuf
+### 1. Export model structure weights, as well as model signatures as protobuf
 
 --
 
-2. Set up the Tensorflow Server
+### 2. Set up the Tensorflow Server
 
 --
 
-3. Create a gRPC client
+### 3. Create a gRPC client
 
 --
 
-4. Load the model
+### 4. Load the model
 
 ---
 
@@ -480,8 +498,11 @@ class: center, middle, inverse
 .center[![Exported model](images/folders.png)]
 
 * The files should include a 
+
     * saved_model.pb
+
     * variable.index 
+
     * one or more variable.data* files.
 
 ???
