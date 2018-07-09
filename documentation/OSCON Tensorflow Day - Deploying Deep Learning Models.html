@@ -25,7 +25,8 @@
         border-radius: 5px;
       }
       .inverse {
-        background: #272822;
+        background: #00429B;
+        /* background: #272822; */
         color: #777872;
         text-shadow: 0 0 20px #333;
       }
@@ -205,7 +206,6 @@ class: center, middle
 ### Model Structure
 
 Let's predict Amazon product ratings based on the comments with a small LSTM network.
-.small[
 ```python
 text_input = Input(shape=(MAX_TOKENS, len(CHARS)))
 x = LSTM(128)(text_input)
@@ -214,9 +214,7 @@ model = Model(inputs=text_input, outputs=output)
 optimizer = RMSprop(lr=0.01)
 model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 ```
-]
 
-.small[
 ```python
 model.fit(x_train, y_train, 
           batch_size=BATCH_SIZE, epochs=EPOCHS, 
@@ -227,7 +225,6 @@ model.fit(x_train, y_train,
                                                      save_weights_only=False, 
                                                      mode='auto', period=1)])
 ```
-]
 
 ---
  
@@ -235,25 +232,21 @@ model.fit(x_train, y_train,
 
 #### Negative Review
 
-.small[
 ```python
 >> test_sentence = "horrible book, don't buy it"
 >> test_vector = clean_data(test_sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS)
 >> model.predict(test_vector.reshape(1, MAX_TOKENS, len(CHARS)))
 [[0.5927979  0.23748466 0.10798287 0.03301411 0.02872046]]
 ```
-]
 
 #### Positive Review
 
-.small[
 ```python
 >> test_sentence = "Awesome product."
 >> test_vector = clean_data(test_sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS)
 >> model.predict(test_vector.reshape(1, MAX_TOKENS, len(CHARS)))
 [[0.03493131 0.0394276  0.08326671 0.2957105  0.5466638 ]]
 ```
-]
 
 ---
 class: center, middle, inverse
@@ -385,7 +378,6 @@ class: center, middle, inverse
 
 ## Export our Keras model to Protobuf
 
-.small[
 ```python
 import os
 from keras import backend as K
@@ -397,10 +389,8 @@ tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
 FLAGS = tf.app.flags.FLAGS
 
 export_path_base = '/tmp/amazon_reviews'
-export_path = os.path.join(
-      tf.compat.as_bytes(export_path_base),
-      tf.compat.as_bytes(str(FLAGS.model_version)))
-print('Exporting trained model to', export_path)
+export_path = os.path.join(tf.compat.as_bytes(export_path_base), 
+			   tf.compat.as_bytes(str(FLAGS.model_version)))
 
 builder = tf.saved_model.builder.SavedModelBuilder(export_path)
 
@@ -408,16 +398,12 @@ signature = tf.saved_model.signature_def_utils.predict_signature_def(
     inputs={'input': model.input}, outputs={'rating_prob': model.output})
 
 builder.add_meta_graph_and_variables(
-      sess=K.get_session(), tags=[tf.saved_model.tag_constants.SERVING],
-      signature_def_map={
-          tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-              signature
-      })
-
+    sess=K.get_session(), tags=[tf.saved_model.tag_constants.SERVING],
+    signature_def_map={
+        tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature })
 builder.save()
 
 ```
-]
 ---
 class: center, middle, inverse
 
@@ -451,7 +437,6 @@ Using Abseil py package
 
 * Signature define the generic _inputs_ and _outputs_ of a function
 
-.small[
 ```python
 signature = tf.saved_model.signature_def_utils.predict_signature_def(
     inputs={model_name + '_input': model.input}, outputs={model_name + '_output': model.output})
@@ -463,7 +448,6 @@ builder.add_meta_graph_and_variables(
               signature
       })
 ```
-]
 ---
 
 # Exporting the Model
@@ -555,13 +539,11 @@ $ docker run -it -p 8500:8500 -p 8501:8501
 
 * Starting up the Tensorflow Serving instance
 
-.small[
 ```terminal
 $[docker bash] tensorflow_model_server --port=8500 
                                        --model_name={model_name}
                                        --model_base_path=/models/{model_name}
 ```
-]
 
 --
 
@@ -600,13 +582,11 @@ evhttp_server.cc : 235 RAW: Entering the event loop ...
 
 ### Inspect your models 
 
-.small[
 ```terminal
 $[docker bash] saved_model_cli show --dir=/models/{model_name}/{version_number}
                                     --tag_set serve 
                                     --signature_def serving_default
 ```
-]
 
 ---
 
@@ -758,23 +738,26 @@ def get_model_version(model_name, stub):
 
 * Tensorflow Serving supports REST requests since release 1.8
 
-.small[
 ```terminal
 $[docker bash] tensorflow_model_server --port=8500 
                                        --rest_api_port=8501 
                                        --model_name={model_name}
                                        --model_base_path=/models/{model_name}
 ```
-]
+---
+
+# Tensorflow Serving Client using REST
 
 * The URI should be
+
     * `http://host:port/<URI>:<VERB>`
+
     * URI `/v1/models/{model_name}/versions/{model_version}`
+
     * verb `classify|regress|predict`
 
 * Use the Python _requests_ package for REST calls.
 
-.small[
 ```python
 def get_model_prediction(model_input, model_name='amazon_review', signature_name='serving_default'):
     url = get_rest_url(model_name)
@@ -786,7 +769,6 @@ def get_model_prediction(model_input, model_name='amazon_review', signature_name
     
     return rv.json()['predictions']
 ```
-]
 
 ---
 
@@ -802,28 +784,22 @@ def get_model_prediction(model_input, model_name='amazon_review', signature_name
 
 * Provide a server config file _config.file_
 
-.small[
 ```json
 model_config_list: {
     config:{
         name:"amazon_reviews",
         base_path:"/models/{model_name}",
         model_platform:"tensorflow",
-        model_version_policy: {
-            all: {}
-        }
+        model_version_policy: { all: {} }
     },
     config:{
         name:"amazon_ratings",
         base_path:"/models/{other_model_name}",
         model_platform:"tensorflow",
-        model_version_policy: {
-            all: {}
-        }
+        model_version_policy: { all: {} }
     }
 }
 ```
-]
 
 ---
 
@@ -919,7 +895,6 @@ url = get_rest_url('amazon_review', version=version)
 
 * Copy the exported model to a Google storage bucket
 
-.small[
 ```terminal
 $ gsutil cp -r inception gs://<bucket-name>
 $ gsutil ls -r gs://<bucket-name>
@@ -927,16 +902,11 @@ gs://<bucket-name>/amazon_review/:
 
 gs://<bucket-name>/amazon_review/1/:
 gs://<bucket-name>/amazon_review/1/saved_model.pb
-
-gs://<bucket-name>/amazon_review/1/variables/:
-gs://<bucket-name>/amazon_review/1/variables/variables.data-00000-of-00001
-gs://<bucket-name>/amazon_review/1/variables/variables.index
+...
 ```
-]
 
 * Create a json file with the request data
 
-.small[
 ```terminal
 $ MODEL_NAME="tf_serving_demo"
 $ INPUT_DATA_FILE="request_data.json"
@@ -945,7 +915,6 @@ $ gcloud ml-engine predict --model $MODEL_NAME  \
                            --version $VERSION_NAME \
                            --json-instances $INPUT_DATA_FILE
 ```
-]
 
 .footnote[
     install of gsutils: https://cloud.google.com/storage/docs/gsutil_install
@@ -959,17 +928,17 @@ Copying file:///Users/hannes/Development/opensource/Deploying_Deep_Learning_Mode
 - [3 files][198.6 KiB/198.6 KiB]
 Operation completed over 3 objects/198.6 KiB.
 
----
+<!---
 
 # Kubeflow for all
-
----
 
 # More ways to deploy Deep Learning Models
 
 ## Seldon
 
 ## MLflow
+
+--->
 
 ---
 
@@ -1016,6 +985,7 @@ class: center, middle, inverse
     <script type="text/javascript">
       var slideshow = remark.create({
         highlightStyle: 'monokai',
+	ratio: '16:9',
         // Customize slide number label, either using a format string..
         slideNumberFormat: 'Slide %current% of %total%',
         // .. or by using a format function
