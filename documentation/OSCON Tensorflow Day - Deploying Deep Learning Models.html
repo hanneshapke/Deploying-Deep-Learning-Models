@@ -13,7 +13,7 @@
         font-family: 'Droid Serif';
         font-size: medium;
       }
-      h1, h2, h3 {
+      h1, h2, h3, h4 {
         font-family: 'Yanone Kaffeesatz';
         font-weight: 400;
         margin-bottom: 0;
@@ -31,7 +31,7 @@
       }
       .inverse h1, .inverse h2 {
         color: #f3f3f3;
-        line-height: 0.8em;
+        line-height: 1em;
       }
       .inverse h3, .inverse h2 {
         color: #f3f3f3;
@@ -47,6 +47,7 @@
       }
       .footnote {
         position: absolute;
+        font-family: 'Yanone Kaffeesatz';
         font-size: small;
         bottom: 3em;
         right: 3em;
@@ -81,9 +82,11 @@
 class: center, middle, inverse
 
 # Deploying Deep Learning Models
+
 ## OSCON Tensorflow Day 2018
 
-#### Hannes Hapke
+### Hannes Hapke
+
 #### @hanneshapke
 
 .footnote[
@@ -146,7 +149,7 @@ class: center, middle
 
 * Sample project
 
-* How not to deploy
+* How not to deploy models
 
 * Deploying Models 
 
@@ -155,6 +158,22 @@ class: center, middle
     * in the Cloud
 
     * with Kubeflow
+
+* Other deployment options 
+
+---
+
+# Infrastructure Architectures
+
+--
+
+### Loading models on the backend server
+.center[![No Model Server Architecture](images/no_model_server.png)]
+
+--
+
+### Using a model server
+.center[![Model Server Architecture](images/model_server.png)]
 
 ---
 
@@ -987,9 +1006,9 @@ class: center, middle, inverse
         // Customize slide number label, either using a format string..
         slideNumberFormat: 'Slide %current% of %total%',
         // .. or by using a format function
-        slideNumberFormat: function (current, total) {
-            return Math.round((1 - current / total) * 100)  + '% remaining';
-        },
+        //slideNumberFormat: function (current, total) {
+        //    return Math.round((1 - current / total) * 100)  + '% remaining';
+        //},
       });
       // extract the embedded styling from ansi spans
       var highlighted = document.querySelectorAll("code.terminal span.hljs-ansi");
