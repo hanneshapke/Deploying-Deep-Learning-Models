@@ -548,7 +548,7 @@ $ docker run -it -p 8500:8500 -p 8501:8501
 
 ---
 
-## What's happening in Docker?
+## What's happening inside the Docker container?
 
 Starting up the Tensorflow Serving instance
 
@@ -753,7 +753,7 @@ def get_model_version(model_name, stub):
 
 # Tensorflow Serving Client using REST
 
-TF Serving supports REST requests since Tensorflow 1.8
+* Tensorflow Serving supports REST requests since release 1.8
 
 .small[
 ```terminal
@@ -764,12 +764,12 @@ $[docker bash] tensorflow_model_server --port=8500
 ```
 ]
 
-The URI should be
-* `http://host:port/<URI>:<VERB>`
-* URI `/v1/models/{model_name}/versions/{model_version}`
-* verb `classify|regress|predict`
+* The URI should be
+    * `http://host:port/<URI>:<VERB>`
+    * URI `/v1/models/{model_name}/versions/{model_version}`
+    * verb `classify|regress|predict`
 
-Use the Python _requests_ package for REST calls.
+* Use the Python _requests_ package for REST calls.
 
 .small[
 ```python
@@ -797,7 +797,7 @@ def get_model_prediction(model_input, model_name='amazon_review', signature_name
 
 ## Serve multiple models
 
-Provide a server config file _config.file_
+* Provide a server config file _config.file_
 
 .small[
 ```json
@@ -1006,9 +1006,9 @@ class: center, middle, inverse
         // Customize slide number label, either using a format string..
         slideNumberFormat: 'Slide %current% of %total%',
         // .. or by using a format function
-        //slideNumberFormat: function (current, total) {
-        //    return Math.round((1 - current / total) * 100)  + '% remaining';
-        //},
+        slideNumberFormat: function (current, total) {
+            return Math.round((1 - current / total) * 100)  + '% remaining';
+        },
       });
       // extract the embedded styling from ansi spans
       var highlighted = document.querySelectorAll("code.terminal span.hljs-ansi");
