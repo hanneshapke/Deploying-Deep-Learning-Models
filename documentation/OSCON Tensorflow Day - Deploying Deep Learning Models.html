@@ -37,6 +37,14 @@
         color: #f3f3f3;
         line-height: 1em;
       }
+      .remark-slide-number {
+          font-family: 'Yanone Kaffeesatz';
+          font-size: 10pt;
+          margin-bottom: 0px;
+          margin-right: 10px;
+          color: #000000; 
+          opacity: 1; /* default: 0.5 */
+      }
       .footnote {
         position: absolute;
         font-size: small;
@@ -135,11 +143,18 @@ class: center, middle
 # Agenda
 
 * Requirements for Model Deployments
+
 * Sample project
+
 * How not to deploy
-* Tensorflow Serving on premise
-* Google Cloud Services
-* Deploying with Kubeflow
+
+* Deploying Models 
+
+    * with Tensorflow Serving on premise
+
+    * in the Cloud
+
+    * with Kubeflow
 
 ---
 
@@ -147,23 +162,28 @@ class: center, middle
 --
 
 1. Separate data science code from backend code
+
 --
 
 2. Reduce boilerplate code
+
 --
 
 3. Allow isolation of memory and CPU requirements
+
 --
 
 4. Support multiple models
+
 --
 
 5. Allow asyncronous requests
+
 ---
 
-name: sample project
-
 # Sample Project
+
+### Model Structure
 
 Let's predict Amazon product ratings based on the comments with a small LSTM network.
 .small[
@@ -190,22 +210,29 @@ model.fit(x_train, y_train,
 ```
 ]
 
---- 
-## Testing the Models
+---
+ 
+## Testing our Model
+
+#### Negative Review
 
 .small[
 ```python
-test_sentence = "horrible book, don't buy it"
-test_vector = clean_data(test_sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS)
-model.predict(test_vector.reshape(1, MAX_TOKENS, len(CHARS)))
+>> test_sentence = "horrible book, don't buy it"
+>> test_vector = clean_data(test_sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS)
+>> model.predict(test_vector.reshape(1, MAX_TOKENS, len(CHARS)))
+[[0.5927979  0.23748466 0.10798287 0.03301411 0.02872046]]
 ```
 ]
 
+#### Positive Review
+
 .small[
 ```python
-test_sentence = "Awesome product."
-test_vector = clean_data(test_sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS)
-model.predict(test_vector.reshape(1, MAX_TOKENS, len(CHARS)))
+>> test_sentence = "Awesome product."
+>> test_vector = clean_data(test_sentence, max_tokens=MAX_TOKENS, sup_chars=CHARS)
+>> model.predict(test_vector.reshape(1, MAX_TOKENS, len(CHARS)))
+[[0.03493131 0.0394276  0.08326671 0.2957105  0.5466638 ]]
 ```
 ]
 
@@ -285,7 +312,7 @@ class: center, middle, inverse
 
 --
 
-5. No asyncronous requests
+5. No asynchronous requests
 
 ---
 class: center, middle, inverse
@@ -300,13 +327,17 @@ class: center, middle, inverse
 
 # Dependencies
 
-### ProtoBuf
+### Protocol Buffers
+Protobufs are a method of serializing structured data. Binary format. 
 
 ### Bazel
+Automation tool to build software. Similar to Make or Apache Maven.
 
 ### gRPC
+(Google) Remote Procedure Call. HTTP/2 based. Uses ProtoBuf. 
 
 ### REST
+Representational State Transfer. Architectural style for web services.  
 
 ---
 class: center, middle, inverse
@@ -375,6 +406,9 @@ class: center, middle, inverse
 ---
 
 # Flags
+
+Let's set flags with information relevant for the model.
+
 ```python
 import tensorflow as tf
 
@@ -386,14 +420,22 @@ tf.app.flags.DEFINE_string('work_dir', '/tmp',
                            'Working directory.')
 FLAGS = tf.app.flags.FLAGS
 ```
+
+???
+Using Abseil py package
+
 ---
 
 # Model Signatures
 
+Tensorflow Serving requires that every model has a model signature.
+
+Signature define the generic _inputs_ and _outputs_ of a function.
+
 .small[
 ```python
 signature = tf.saved_model.signature_def_utils.predict_signature_def(
-    inputs={'input': model.input}, outputs={'rating_prob': model.output})
+    inputs={model_name + '_input': model.input}, outputs={model_name + '_output': model.output})
 
 builder.add_meta_graph_and_variables(
       sess=K.get_session(), tags=[tf.saved_model.tag_constants.SERVING],
@@ -405,13 +447,16 @@ builder.add_meta_graph_and_variables(
 ]
 ---
 
-# Exporting the model
+# Exporting the Model
+
+The _SavedModelBuilder_ will export your model to a predefined ProtoBuf format. 
 
 ```python
 export_path_base = '/tmp/amazon_reviews'
 export_path = os.path.join(
       tf.compat.as_bytes(export_path_base),
       tf.compat.as_bytes(str(FLAGS.model_version)))
+
 print('Exporting trained model to', export_path)
 
 builder = tf.saved_model.builder.SavedModelBuilder(export_path)
@@ -425,9 +470,22 @@ class: center, middle, inverse
 # Now you have exported your model.
 ---
 
-## You should find these protobuf files in your folder structure
+## Exported Models
 
-SCREENSHOT
+You should find these protobuf files in your folder structure
+
+.center[![Exported model](images/folders.png)]
+
+The files should include a _saved_model.pb_, a _variable.index_ and one or more _variable.data*_ files.
+
+???
+assets is a subfolder containing auxiliary (external) files, such as vocabularies. Assets are copied to the SavedModel location and can be read when loading a specific MetaGraphDef.
+
+assets.extra is a subfolder where higher-level libraries and users can add their own assets that co-exist with the model, but are not loaded by the graph. This subfolder is not managed by the SavedModel libraries.
+
+variables is a subfolder that includes output from tf.train.Saver.
+
+saved_model.pb or saved_model.pbtxt is the SavedModel protocol buffer. It includes the graph definitions as MetaGraphDef protocol buffers.
 
 ---
 
@@ -442,12 +500,19 @@ class: center, middle, inverse
 
 * Otherwise install Tensorflow server in a Docker container
 
+
 ```terminal
 $ git clone git@github.com:hanneshapke/Deploying_Deep_Learning_Models.git
 
-$ docker build --pull -t $USER/tensorflow-serving-devel-cpu 
-                      -f Dockerfile.devel .
+$ docker build --pull -t $USER/tensorflow-serving-devel-cpu \
+                      -f {path to repo}/\
+                      Deploying_Deep_Learning_Models/\
+                      examples/Dockerfile .
 ```
+
+---
+
+# Starting up the Server
 
 Start up the container with 
 
@@ -457,13 +522,20 @@ $ docker run -it -p 8500:8500 -p 8501:8501
              $USER/tensorflow-serving-devel-cpu:latest /bin/bash
 ```
 
+???
+
+-t              : Allocate a pseudo-tty
+-i              : Keep STDIN open even if not attached
+
 ---
 
-## Start Tensorflow Serving
+## What's happening in Docker?
+
+Starting up the Tensorflow Serving instance
 
 .small[
 ```terminal
-$[docker bash] tensorflow_model_server --port=9000 
+$[docker bash] tensorflow_model_server --port=8500 
                                        --model_name={model_name}
                                        --model_base_path=/models/{model_name}
 ```
@@ -475,27 +547,28 @@ This should generate similar output
 
 .small[
 ```terminal
-2018-06-05 21:44:51.541701: I
-tensorflow_serving/model_servers/main.cc:154 Building single TensorFlow
-model file config: model_name: amazon_reviews model_base_path:
-/amazon_reviews/
-2018-06-05 21:44:51.541983: I tensorflow_serving/model_servers/server_core.cc:444 Adding/updating
-models.
-2018-06-05 21:44:51.542026: I tensorflow_serving/model_servers/server_core.cc:499 (Re-)adding model:
-amazon_reviews
-2018-06-05 21:44:51.655507: I tensorflow_serving/core/basic_manager.cc:716 Successfully reserved
-resources to load servable {name: amazon_reviews version: 5}
-2018-06-05 21:44:51.655575: I
-tensorflow_serving/core/loader_harness.cc:66 Approving load for
-servable version {name: amazon_reviews version: 5}
-2018-06-05 21:44:51.655609: I tensorflow_serving/core/loader_harness.cc:74 Loading servable version
-{name: amazon_reviews version: 5}
+2018-06-29 00:02:05.611608: 
+    tensorflow_serving/model_servers/server_core.cc:444 Adding/updating models.
+2018-06-29 00:02:05.611712: 
+    tensorflow_serving/model_servers/server_core.cc:499  (Re-)adding model: amazon_review
+2018-06-29 00:02:05.729657: 
+    tensorflow_serving/core/basic_manager.cc:716 
+    Successfully reserved resources to load servable {name: amazon_review version: 2}
+2018-06-29 00:02:05.729731: 
+    tensorflow_serving/core/loader_harness.cc:66 
+    Approving load for servable version {name: amazon_review version: 2}
+2018-06-29 00:02:05.729761: 
+    tensorflow_serving/core/loader_harness.cc:74 
+    Loading servable version {name: amazon_review version: 2}
 ...
-SavedModel load for tags { serve }; Status: success. Took 224320 microseconds.
-2018-06-05 21:44:51.895943: I tensorflow_serving/core/loader_harness.cc:86 Successfully loaded
-servable version {name: amazon_reviews version: 5}
-2018-06-05 21:44:51.898859: I tensorflow_serving/model_servers/main.cc:316 Running ModelServer at
-0.0.0.0:9000 ...
+2018-06-29 00:02:05.855197: 
+    tensorflow_serving/core/loader_harness.cc:86 
+    Successfully loaded servable version {name: amazon_review version: 2}
+2018-06-29 00:02:05.863820: 
+    tensorflow_serving/model_servers/main.cc:323 Running ModelServer at 0.0.0.0:8500 ...
+2018-06-29 00:02:05.870805: 
+    tensorflow_serving/model_servers/main.cc:333 Exporting HTTP/REST API at:localhost:8501 ...
+evhttp_server.cc : 235 RAW: Entering the event loop ...
 ```
 ]
 
@@ -542,7 +615,7 @@ w/serving/issues/700)
 from grpc.beta import implementations
 from tensorflow_serving.apis import prediction_service_pb2
 
-def get_stub(host='127.0.0.1', port='9000'):
+def get_stub(host='127.0.0.1', port='8500'):
     channel = implementations.insecure_channel(host, int(port))
     stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
     return stub
@@ -552,12 +625,13 @@ def get_stub(host='127.0.0.1', port='9000'):
 
 # Tensorflow Serving Client
 
-## Request prediction
+## Request prediction using gRPC
 
 Very barebone implementation!
 
 ```python
-def get_model_prediction(model_input, stub, model_name='amazon_reviews', 
+def get_model_prediction(model_input, stub, 
+                         model_name='amazon_reviews', 
                          signature_name='serving_default'):
 
     request = predict_pb2.PredictRequest()
@@ -566,12 +640,29 @@ def get_model_prediction(model_input, stub, model_name='amazon_reviews',
     
     request.inputs['input'].CopyFrom(
         tf.contrib.util.make_tensor_proto(
-            model_input.reshape(1, 50, 45), 
-            verify_shape=True, 
-            shape=(1, 50, 45)))
+            model_input.reshape(1, 50), 
+            verify_shape=True, shape=(1, 50)))
  
-    response = stub.Predict.future(request, 5.0)  # 5 seconds
+    response = stub.Predict.future(request, 5.0)  # wait max 5s
     return response.result().outputs["rating_prob"].float_val
+```
+
+---
+
+# Tensorflow Serving Client
+
+## Request prediction using gRPC
+
+Very barebone implementation!
+
+
+```python
+>>> sentence = "this product is really helpful"
+>>> model_input = clean_data_encoded(sentence)
+
+>>> get_model_prediction(model_input, stub)
+[0.0250927172601223, 0.03738045319914818, 0.09454590082168579, 
+0.33069494366645813, 0.5122858881950378]
 ```
 
 ---
@@ -580,10 +671,14 @@ def get_model_prediction(model_input, stub, model_name='amazon_reviews',
 
 ## Request prediction from a specific model version
 
+You can specify the specific model version.
+
+If no model version is provided, TF Serving loads the model with the latest model version.
+
 ```python
 request = predict_pb2.PredictRequest()
 request.model_spec.name = 'amazon_reviews'
-request.model_spec.version.value = 5
+request.model_spec.version.value = 1
 ```
 
 ---
@@ -599,9 +694,26 @@ def get_model_meta(model_name, stub):
     request.metadata_field.append("signature_def")
     response = stub.GetModelMetadata(request, 5)
     return response.metadata['signature_def']
+
+>>> meta = get_model_meta(model_name, stub)
+>>> print(meta.SerializeToString().decode("utf-8", 'ignore'))
+type.googleapis.com/tensorflow.serving.SignatureDefMap
+serving_default
+amazon_review_input
+        input_1:0
+               2@
+amazon_review_output(
+dense_1/Softmax:0
+               tensorflow/serving/predict
+
 ```
 
+---
+
+# Tensorflow Serving Client
+
 ## Obtain model version
+
 ```python
 def get_model_version(model_name, stub):
     request = get_model_metadata_pb2.GetModelMetadataRequest()
@@ -611,20 +723,54 @@ def get_model_version(model_name, stub):
     return response.model_spec.version.value
 ```
 
----
-
-# Tensorflow Serving Client
-
-## Let's try it out 
-
 ```python
->>> get_model_prediction(model_input, stub)
-[0.9245200753211975, 0.07307500392198563, 0.002189033664762974,
-0.00012129579408792779, 9.459642751608044e-05]
+>>> model_name = 'amazon_review'
+>>> stub = get_stub()
 
 >>> get_model_version(model_name, stub)
-6L
+2L
 ```
+---
+
+# Tensorflow Serving Client using REST
+
+TF Serving supports REST requests since Tensorflow 1.8
+
+.small[
+```terminal
+$[docker bash] tensorflow_model_server --port=8500 
+                                       --rest_api_port=8501 
+                                       --model_name={model_name}
+                                       --model_base_path=/models/{model_name}
+```
+]
+
+The URI should be
+* `http://host:port/<URI>:<VERB>`
+* URI `/v1/models/{model_name}/versions/{model_version}`
+* verb `classify|regress|predict`
+
+Use the Python _requests_ package for REST calls.
+
+.small[
+```python
+def get_model_prediction(model_input, model_name='amazon_review', signature_name='serving_default'):
+    url = get_rest_url(model_name)
+    data = {"instances": [model_input.tolist()]}
+
+    rv = requests.post(url, data=json.dumps(data))
+    if rv.status_code != requests.codes.ok:
+        rv.raise_for_status()
+    
+    return rv.json()['predictions']
+```
+]
+
+---
+
+# Tensorflow Serving Client using REST
+
+.center[![REST requests](images/postman.png)]
 
 ---
 
@@ -666,15 +812,40 @@ model_config_list: {
 Start the server with the config file
 
 ```terminal
-$ tensorflow_model_server --port=9000
-                          --model_config_file=/path/to/config/file.config
+$ tensorflow_model_server --port=8500
+                          --model_config_file=/path/to/\
+                            config/file.config
 ```
 
 ---
 
-# How to do A/B Testing
+# How to do A/B Testing?
 
-...
+* Easily possible since multiple versions can be served
+
+* A/B testing of models can be performed by selecting the models from the client side
+
+* Set the specific version in your gRPC or REST request
+
+.footnote[
+    [Discussion on the TF.org mailing list](https://groups.google.com/a/tensorflow.org/forum/#!topic/discuss/bn3_I640R5E)
+]
+
+```python
+from random import random
+def get_rest_url(model_name, host='127.0.1', port='8501', 
+                 verb='predict', version=None):
+    url = "http://{host}:{port}/v1/models/{model_name}".format(
+        host=host, port=port, model_name=model_name)
+    if version:
+        url += 'versions/{version}'.format(version=version)
+    url += ':{verb}'.format(verb=verb)
+    return url
+
+# 10% of requests to the latest model
+version = 1 if random() > 0.1 else None
+url = get_rest_url('amazon_review', version=version)
+```
 
 ---
 
@@ -704,10 +875,51 @@ $ tensorflow_model_server --port=9000
 
 # Serving Models via the Cloud 
 
-footnote install gsutils: https://cloud.google.com/storage/docs/gsutil_install
-Copy model gsutil cp -r inception gs://<bucket-name>
+* Exported Tensorflow or Keras models can be served via the _Google Cloud Platform_ and [Google Cloud ML Engine](https://cloud.google.com/ml-engine/)
 
+* Detailed information on [GCP Model Deployments](https://cloud.google.com/ml-engine/docs/tensorflow/deploying-models)
 
+.center[![Google Cloud ML Engine](images/gcp_demo.png)]
+
+---
+
+# Serving Models via Google Cloud ML Engine
+
+* Copy the exported model to a Google storage bucket
+
+.small[
+```terminal
+$ gsutil cp -r inception gs://<bucket-name>
+$ gsutil ls -r gs://<bucket-name>
+gs://<bucket-name>/amazon_review/:
+
+gs://<bucket-name>/amazon_review/1/:
+gs://<bucket-name>/amazon_review/1/saved_model.pb
+
+gs://<bucket-name>/amazon_review/1/variables/:
+gs://<bucket-name>/amazon_review/1/variables/variables.data-00000-of-00001
+gs://<bucket-name>/amazon_review/1/variables/variables.index
+```
+]
+
+* Create a json file with the request data
+
+.small[
+```terminal
+$ MODEL_NAME="tf_serving_demo"
+$ INPUT_DATA_FILE="request_data.json"
+$ VERSION_NAME="amazon_review_prediction"
+$ gcloud ml-engine predict --model $MODEL_NAME  \
+                           --version $VERSION_NAME \
+                           --json-instances $INPUT_DATA_FILE
+```
+]
+
+.footnote[
+    install of gsutils: https://cloud.google.com/storage/docs/gsutil_install
+]
+
+???
  hannes@Hanness-MBP-2  ~  gsutil cp -r ~/Development/opensource/Deploying_Deep_Learning_Models/examples/export_keras_model/exported_models/amazon_review gs://model-server
 Copying file:///Users/hannes/Development/opensource/Deploying_Deep_Learning_Models/examples/export_keras_model/exported_models/amazon_review/1/saved_model.pb [Content-Type=application/octet-stream]...
 Copying file:///Users/hannes/Development/opensource/Deploying_Deep_Learning_Models/examples/export_keras_model/exported_models/amazon_review/1/variables/variables.data-00000-of-00001 [Content-Type=application/octet-stream]...
@@ -715,22 +927,41 @@ Copying file:///Users/hannes/Development/opensource/Deploying_Deep_Learning_Mode
 - [3 files][198.6 KiB/198.6 KiB]
 Operation completed over 3 objects/198.6 KiB.
 
-
- hannes@Hanness-MBP-2  ~  gsutil ls -r gs://model-server
-gs://model-server/amazon_review/:
-
-gs://model-server/amazon_review/1/:
-gs://model-server/amazon_review/1/saved_model.pb
-
-gs://model-server/amazon_review/1/variables/:
-gs://model-server/amazon_review/1/variables/variables.data-00000-of-00001
-gs://model-server/amazon_review/1/variables/variables.index
-
-https://cloud.google.com/ml-engine/docs/tensorflow/deploying-models
-
 ---
 
 # Kubeflow for all
+
+---
+
+# More ways to deploy Deep Learning Models
+
+## Seldon
+
+## MLflow
+
+---
+
+# Conclusion
+
+--
+
+* Reasons to serve models with Tensorflow Serving
+    
+    * Separates data science code from API code
+    
+    * No boilerplate code
+    
+    * Can handle multiple models and versions
+
+--
+
+* Steps to deploy
+    
+    * Export your model
+    
+    * Setup your server
+    
+    * Request predictions via gRPC or REST
 
 ---
 
