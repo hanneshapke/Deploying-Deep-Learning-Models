@@ -426,7 +426,7 @@ class: center, middle, inverse
 
 # Flags
 
-Let's set flags with information relevant for the model.
+* Let's set flags with information relevant for the model
 
 ```python
 import tensorflow as tf
@@ -447,9 +447,9 @@ Using Abseil py package
 
 # Model Signatures
 
-Tensorflow Serving requires that every model has a model signature.
+* Tensorflow Serving requires that every model has a model signature
 
-Signature define the generic _inputs_ and _outputs_ of a function.
+* Signature define the generic _inputs_ and _outputs_ of a function
 
 .small[
 ```python
@@ -468,7 +468,7 @@ builder.add_meta_graph_and_variables(
 
 # Exporting the Model
 
-The _SavedModelBuilder_ will export your model to a predefined ProtoBuf format. 
+* The _SavedModelBuilder_ will export your model to a predefined ProtoBuf format
 
 ```python
 export_path_base = '/tmp/amazon_reviews'
@@ -491,11 +491,14 @@ class: center, middle, inverse
 
 ## Exported Models
 
-You should find these protobuf files in your folder structure
+* You should find these protobuf files in your folder structure
 
 .center[![Exported model](images/folders.png)]
 
-The files should include a _saved_model.pb_, a _variable.index_ and one or more _variable.data*_ files.
+* The files should include a 
+    * saved_model.pb
+    * variable.index 
+    * one or more variable.data* files.
 
 ???
 assets is a subfolder containing auxiliary (external) files, such as vocabularies. Assets are copied to the SavedModel location and can be read when loading a specific MetaGraphDef.
@@ -533,7 +536,7 @@ $ docker build --pull -t $USER/tensorflow-serving-devel-cpu \
 
 # Starting up the Server
 
-Start up the container with 
+* Start up the container with 
 
 ```terminal
 $ docker run -it -p 8500:8500 -p 8501:8501 
@@ -550,7 +553,7 @@ $ docker run -it -p 8500:8500 -p 8501:8501
 
 ## What's happening inside the Docker container?
 
-Starting up the Tensorflow Serving instance
+* Starting up the Tensorflow Serving instance
 
 .small[
 ```terminal
@@ -562,7 +565,7 @@ $[docker bash] tensorflow_model_server --port=8500
 
 --
 
-This should generate similar output
+* This should generate similar output like this 
 
 .small[
 ```terminal
@@ -646,7 +649,7 @@ def get_stub(host='127.0.0.1', port='8500'):
 
 ## Request prediction using gRPC
 
-Very barebone implementation!
+* Very barebone implementation!
 
 ```python
 def get_model_prediction(model_input, stub, 
@@ -672,7 +675,7 @@ def get_model_prediction(model_input, stub,
 
 ## Request prediction using gRPC
 
-Very barebone implementation!
+* Very barebone implementation!
 
 
 ```python
@@ -690,9 +693,9 @@ Very barebone implementation!
 
 ## Request prediction from a specific model version
 
-You can specify the specific model version.
+* You can specify the specific model version
 
-If no model version is provided, TF Serving loads the model with the latest model version.
+* If no model version is provided, TF Serving loads the model with the latest model version
 
 ```python
 request = predict_pb2.PredictRequest()
@@ -828,7 +831,17 @@ model_config_list: {
 
 ## Serve multiple models
 
-Start the server with the config file
+* Start the server using config file
+
+Instead of 
+
+```terminal
+$ tensorflow_model_server --port=8500 
+                          --model_name={model_name}
+                          --model_base_path=/models/{model_name}
+```
+
+use 
 
 ```terminal
 $ tensorflow_model_server --port=8500
