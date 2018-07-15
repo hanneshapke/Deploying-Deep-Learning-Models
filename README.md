@@ -39,11 +39,23 @@ model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 ## Steps to Deploy the Sample Project
 
 * Export the model as protobuf
-
 * Set up the Tensorflow Serving
-
 * Setup a client (either gRPC or REST based)
-
 * Happy Deploying!
+
+## Deployment Options
+
+### On Premise
+
+* Kubeflow
+* Tensorflow Serving
+* MLflow
+* Seldon.io
+
+### Cloud base
+
+* Google Cloud Platform
+* Microsoft Azure ML
+* Amazon SageMaker
 
 More details [here](https://github.com/hanneshapke/Deploying_Deep_Learning_Models/blob/master/documentation/OSCON%20Tensorflow%20Day%20-%20Deploying%20Deep%20Learning%20Models.html)
