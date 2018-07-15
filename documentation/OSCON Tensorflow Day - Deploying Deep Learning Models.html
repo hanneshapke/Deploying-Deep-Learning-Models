@@ -200,7 +200,7 @@ class: center, middle
 
 --
 
-### 5. Allow asyncronous requests
+### 5. Server should handle requests (e.g. timeouts)
 
 ---
 
@@ -328,7 +328,7 @@ class: center, middle, inverse
 
 --
 
-### 5. No asynchronous requests
+### 5. No timeout handling
 
 ---
 class: center, middle, inverse
@@ -935,17 +935,47 @@ Copying file:///Users/hannes/Development/opensource/Deploying_Deep_Learning_Mode
 - [3 files][198.6 KiB/198.6 KiB]
 Operation completed over 3 objects/198.6 KiB.
 
-<!---
+---
 
 # Kubeflow for all
 
-# More ways to deploy Deep Learning Models
+* Scalable ML stack for Kubernetes
+
+* Supports Jupyter notebooks, and Tensorflow Jobs
+
+* Kubeflow integrations with Tensorflow Serving
+
+* Kubernetes takes care of scaling your ML infrastructure 
+
+.center[![Kubeflow](images/kubeflow.png)]
+
+---
+
+# Other Deployment Options 
+
+--
 
 ## Seldon
 
+* Deployment solution for ML on Kubernetes
+
+* Supports Scikit, H2O and Tensorflow
+
+* Supports REST and gRPC end-points
+
+* Provides model routers (e.g. for server side A/B testing)
+
+--
+
 ## MLflow
 
---->
+* Databricks package supports deployments
+
+* Supports Scikit and Tensorflow
+
+* Provides REST end-points
+
+* Supports deployments to AzureML, Amazon Sagemaker, Spark clusters
 
 ---
 
