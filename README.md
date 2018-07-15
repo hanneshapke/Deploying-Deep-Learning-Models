@@ -38,10 +38,92 @@ model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 
 ## Steps to Deploy the Sample Project
 
-* Export the model as protobuf
-* Set up the Tensorflow Serving
-* Setup a client (either gRPC or REST based)
-* Happy Deploying!
+#### Export the model as protobuf
+
+```python
+import os
+from keras import backend as K
+import tensorflow as tf
+
+tf.app.flags.DEFINE_integer('training_iteration', 1000, 'number of training iterations.')
+tf.app.flags.DEFINE_integer('model_version', 1, 'version number of the model.')
+tf.app.flags.DEFINE_string('work_dir', '/tmp', 'Working directory.')
+FLAGS = tf.app.flags.FLAGS
+
+export_path_base = '/tmp/amazon_reviews'
+export_path = os.path.join(tf.compat.as_bytes(export_path_base), 
+               tf.compat.as_bytes(str(FLAGS.model_version)))
+
+builder = tf.saved_model.builder.SavedModelBuilder(export_path)
+
+signature = tf.saved_model.signature_def_utils.predict_signature_def(
+    inputs={'input': model.input}, outputs={'rating_prob': model.output})
+
+builder.add_meta_graph_and_variables(
+    sess=K.get_session(), tags=[tf.saved_model.tag_constants.SERVING],
+    signature_def_map={
+        tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: signature })
+builder.save()
+
+```
+
+#### Set up the Tensorflow Serving
+
+```terminal
+$ git clone git@github.com:hanneshapke/Deploying_Deep_Learning_Models.git
+
+$ docker build --pull -t $USER/tensorflow-serving-devel-cpu \
+                      -f {path to repo}/\
+                      Deploying_Deep_Learning_Models/\
+                      examples/Dockerfile .
+
+$ docker run -it -p 8500:8500 -p 8501:8501 
+             -v {model_path}/exported_models/amazon_review/:/models 
+             $USER/tensorflow-serving-devel-cpu:latest /bin/bash
+
+$[docker bash] tensorflow_model_server --port=8500 
+                                       --model_name={model_name}
+                                       --model_base_path=/models/{model_name}
+
+```
+
+#### Setup a client (either gRPC or REST based)
+
+```python
+from grpc.beta import implementations
+from tensorflow_serving.apis import prediction_service_pb2
+
+def get_stub(host='127.0.0.1', port='8500'):
+    channel = implementations.insecure_channel(host, int(port))
+    stub = prediction_service_pb2.beta_create_PredictionService_stub(channel)
+    return stub
+
+def get_model_prediction(model_input, stub, 
+                         model_name='amazon_reviews', 
+                         signature_name='serving_default'):
+
+    request = predict_pb2.PredictRequest()
+    request.model_spec.name = model_name
+    request.model_spec.signature_name = signature_name
+    
+    request.inputs['input'].CopyFrom(
+        tf.contrib.util.make_tensor_proto(
+            model_input.reshape(1, 50), 
+            verify_shape=True, shape=(1, 50)))
+ 
+    response = stub.Predict.future(request, 5.0)  # wait max 5s
+    return response.result().outputs["rating_prob"].float_val
+```
+
+```python
+>>> sentence = "this product is really helpful"
+>>> model_input = clean_data_encoded(sentence)
+
+>>> get_model_prediction(model_input, stub)
+[0.0250927172601223, 0.03738045319914818, 0.09454590082168579, 
+0.33069494366645813, 0.5122858881950378]
+```
+
 
 ## Deployment Options
 
