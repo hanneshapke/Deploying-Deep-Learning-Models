@@ -443,10 +443,13 @@ Using Abseil py package
 
 ```python
 signature = tf.saved_model.signature_def_utils.predict_signature_def(
-    inputs={model_name + '_input': model.input}, outputs={model_name + '_output': model.output})
+    inputs={model_name + '_input': model.input}, 
+    outputs={model_name + '_output': model.output}
+)
 
 builder.add_meta_graph_and_variables(
-      sess=K.get_session(), tags=[tf.saved_model.tag_constants.SERVING],
+      sess=K.get_session(), 
+      tags=[tf.saved_model.tag_constants.SERVING],
       signature_def_map={
           tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
               signature
@@ -530,7 +533,7 @@ $ docker build --pull -t $USER/tensorflow-serving-devel-cpu \
 * Start up the container with 
 
 ```terminal
-$ docker run -it -p 8500:8500 -p 8501:8501 
+$ docker run -it -p 8500:8500 
              -v {model_path}/exported_models/amazon_review/:/models 
              $USER/tensorflow-serving-devel-cpu:latest /bin/bash
 ```
@@ -623,6 +626,51 @@ $ python examples/export_keras_model.py
     tensorflow_serving/core/loader_harness.cc:127 Done unloading servable version {name: amazon_review version: 2}
 ```
 ]
+
+---
+
+## Serve multiple models
+
+* Provide a server config file _config.file_
+
+```json
+model_config_list: {
+    config:{
+        name:"amazon_reviews",
+        base_path:"/models/{model_name}",
+        model_platform:"tensorflow",
+        model_version_policy: { all: {} }
+    },
+    config:{
+        name:"amazon_ratings",
+        base_path:"/models/{other_model_name}",
+        model_platform:"tensorflow",
+        model_version_policy: { all: {} }
+    }
+}
+```
+
+---
+
+## Serve multiple models
+
+* Start the server using config file
+
+Instead of 
+
+```terminal
+$ tensorflow_model_server --port=8500 
+                          --model_name={model_name}
+                          --model_base_path=/models/{model_name}
+```
+
+use 
+
+```terminal
+$ tensorflow_model_server --port=8500
+                          --model_config_file=/path/to/\
+                            config/file.config
+```
 
 ---
 
@@ -810,6 +858,18 @@ $[docker bash] tensorflow_model_server --port=8500
                                        --model_name={model_name}
                                        --model_base_path=/models/{model_name}
 ```
+
+* Remember to expose the REST port
+
+```terminal
+$ docker run -it 
+             -p 8500:8500 
+             -p 8501:8501 
+             -v {model_path}/exported_models/amazon_review/:/models 
+             $USER/tensorflow-serving-devel-cpu:latest /bin/bash
+
+```
+
 ---
 
 # Tensorflow Serving Client using REST
@@ -825,7 +885,8 @@ $[docker bash] tensorflow_model_server --port=8500
 * Use the Python _requests_ package for REST calls.
 
 ```python
-def get_model_prediction(model_input, model_name='amazon_review', signature_name='serving_default'):
+def get_model_prediction(model_input, model_name='amazon_review', 
+                         signature_name='serving_default'):
     url = get_rest_url(model_name)
     data = {"instances": [model_input.tolist()]}
 
@@ -841,55 +902,6 @@ def get_model_prediction(model_input, model_name='amazon_review', signature_name
 # Tensorflow Serving Client using REST
 
 .center[![REST requests](images/postman.png)]
-
----
-
-# Tensorflow Serving
-
-## Serve multiple models
-
-* Provide a server config file _config.file_
-
-```json
-model_config_list: {
-    config:{
-        name:"amazon_reviews",
-        base_path:"/models/{model_name}",
-        model_platform:"tensorflow",
-        model_version_policy: { all: {} }
-    },
-    config:{
-        name:"amazon_ratings",
-        base_path:"/models/{other_model_name}",
-        model_platform:"tensorflow",
-        model_version_policy: { all: {} }
-    }
-}
-```
-
----
-
-# Tensorflow Serving
-
-## Serve multiple models
-
-* Start the server using config file
-
-Instead of 
-
-```terminal
-$ tensorflow_model_server --port=8500 
-                          --model_name={model_name}
-                          --model_base_path=/models/{model_name}
-```
-
-use 
-
-```terminal
-$ tensorflow_model_server --port=8500
-                          --model_config_file=/path/to/\
-                            config/file.config
-```
 
 ---
 
@@ -943,7 +955,7 @@ url = get_rest_url('amazon_review', version=version)
 
 --
 
-5. Asyncronous requests. Heck yes!
+5. Easy request handling
 
 ---
 
@@ -962,7 +974,7 @@ url = get_rest_url('amazon_review', version=version)
 * Copy the exported model to a Google storage bucket
 
 ```terminal
-$ gsutil cp -r inception gs://<bucket-name>
+$ gsutil cp -r amazon_review gs://<bucket-name>
 $ gsutil ls -r gs://<bucket-name>
 gs://<bucket-name>/amazon_review/:
 
@@ -970,6 +982,8 @@ gs://<bucket-name>/amazon_review/1/:
 gs://<bucket-name>/amazon_review/1/saved_model.pb
 ...
 ```
+
+* Create a model endpoint in the Google Cloud Platform
 
 * Create a json file with the request data
 
