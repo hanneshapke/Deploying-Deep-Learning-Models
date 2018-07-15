@@ -1,5 +1,8 @@
 # Deploying Deep Learning Models
-Strategies to deploy deep learning models
+### Strategies to deploy deep learning models
+
+The slides of my OSCON Tensorflow Day 2018 are available [here](https://github.com/hanneshapke/Deploying-Deep-Learning-Models/blob/master/OSCON%20Tensorflow%20Day%20-%20Deploying%20Deep%20Learning%20Models.pdf).
+I will add a link to the conference video once it is published.
 
 ## Sample Project
 
@@ -140,4 +143,4 @@ def get_model_prediction(model_input, stub,
 * Microsoft Azure ML
 * Amazon SageMaker
 
-More details [here](https://github.com/hanneshapke/Deploying_Deep_Learning_Models/blob/master/documentation/OSCON%20Tensorflow%20Day%20-%20Deploying%20Deep%20Learning%20Models.html)
+More details [here](https://github.com/hanneshapke/Deploying-Deep-Learning-Models/blob/master/OSCON%20Tensorflow%20Day%20-%20Deploying%20Deep%20Learning%20Models.pdf)
