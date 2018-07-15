@@ -585,14 +585,73 @@ evhttp_server.cc : 235 RAW: Entering the event loop ...
 
 ---
 
+## Let's export a new model version
+
+```terminal
+$ python examples/export_keras_model.py
+```
+
+--
+
+* Tensorflow Serving will detect the new version and load it automatically
+
+.small[
+```terminal
+2018-07-15 20:39:02.561131: 
+    external/org_tensorflow/tensorflow/contrib/session_bundle/bundle_shim.cc:360 Attempting to load native SavedModelBundle in bundle-shim from: 
+    /models/amazon_review/3
+2018-07-15 20:39:02.561509: 
+    external/org_tensorflow/tensorflow/cc/saved_model/loader.cc:242 Loading SavedModel with tags: { serve }; from: /models/amazon_review/3
+2018-07-15 20:39:02.593076: 
+    external/org_tensorflow/tensorflow/cc/saved_model/loader.cc:161 Restoring SavedModel bundle.
+2018-07-15 20:39:02.621946: 
+    external/org_tensorflow/tensorflow/cc/saved_model/loader.cc:196 Running LegacyInitOp on SavedModel bundle.
+2018-07-15 20:39:02.627210: 
+    external/org_tensorflow/tensorflow/cc/saved_model/loader.cc:291 SavedModel load for tags { serve }; Status: success. 
+    Took 65974 microseconds.
+2018-07-15 20:39:02.637227: 
+    tensorflow_serving/core/loader_harness.cc:86 Successfully loaded servable version {name: amazon_review version: 3}
+2018-07-15 20:39:02.637451: 
+    tensorflow_serving/core/loader_harness.cc:137 Quiescing servable version {name: amazon_review version: 2}
+2018-07-15 20:39:02.637751: 
+    tensorflow_serving/core/loader_harness.cc:144 Done quiescing servable version {name: amazon_review version: 2}
+2018-07-15 20:39:02.639501: 
+    tensorflow_serving/core/loader_harness.cc:119 Unloading servable version {name: amazon_review version: 2}
+2018-07-15 20:39:02.645189: 
+    ./tensorflow_serving/core/simple_loader.h:294 Calling MallocExtension_ReleaseToSystem() after servable unload with 251467
+2018-07-15 20:39:02.645312: 
+    tensorflow_serving/core/loader_harness.cc:127 Done unloading servable version {name: amazon_review version: 2}
+```
+]
+
+---
+
 ## Useful tips
 
 ### Inspect your models 
 
 ```terminal
-$[docker bash] saved_model_cli show --dir=/models/{model_name}/{version_number}
-                                    --tag_set serve 
-                                    --signature_def serving_default
+$ saved_model_cli show --dir=/models/{model_name}/{version_number}
+                       --tag_set serve 
+                       --signature_def serving_default
+```
+
+--
+
+* `saved_model_cli` should return the signature information
+
+```terminal
+The given SavedModel SignatureDef contains the following input(s):
+  inputs['amazon_review_input'] tensor_info:
+      dtype: DT_FLOAT
+      shape: (-1, 50)
+      name: input_1:0
+The given SavedModel SignatureDef contains the following output(s):
+  outputs['amazon_review_output'] tensor_info:
+      dtype: DT_FLOAT
+      shape: (-1, 5)
+      name: dense_1/Softmax:0
+Method name is: tensorflow/serving/predict
 ```
 
 ---
