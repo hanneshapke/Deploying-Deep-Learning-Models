@@ -917,7 +917,7 @@ def get_model_prediction(model_input, model_name='amazon_review',
 
 ```python
 from random import random
-def get_rest_url(model_name, host='127.0.1', port='8501', 
+def get_rest_url(model_name, host='127.0.0.1', port='8501', 
                  verb='predict', version=None):
     url = "http://{host}:{port}/v1/models/{model_name}".format(
         host=host, port=port, model_name=model_name)
@@ -937,23 +937,23 @@ url = get_rest_url('amazon_review', version=version)
 
 --
 
-1. No mix of data science and backend code
+### 1. No mix of data science and backend code
 
 --
 
-2. No boilerplate API code
+### 2. No boilerplate API code
 
 --
 
-3. APIs can be serverless
+### 3. APIs can be serverless
 
 --
 
-4. Multiple models? Of course.
+### 4. Multiple models? Of course.
 
 --
 
-5. Easy request handling
+### 5. Easy request handling
 
 ---
 
