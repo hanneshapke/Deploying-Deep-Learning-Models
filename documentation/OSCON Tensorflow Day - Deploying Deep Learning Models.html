@@ -104,7 +104,7 @@ class: center, middle, inverse
 class: inverse
 
 ### Joe (data scientist): Hey Jane, my model is validated and tested. I would like to deploy it. 
-### Jane (back-end engineer): Great, do you have an API for it? 
+### Jane (backend engineer): Great, do you have an API for it? 
 --
 
 ### Joe: API? Our model runs on TF/Python. The entire back-end runs on Ruby. I haven’t written Ruby in years … 
@@ -364,7 +364,7 @@ class: center, middle, inverse
  
 --
 
-### 1. Export model structure weights, as well as model signatures as protobuf
+### 1. Export model structure weights, as well as model signatures as Protobuf
 
 --
 
@@ -439,7 +439,7 @@ Using Abseil py package
 
 * Tensorflow Serving requires that every model has a model signature
 
-* Signature define the generic _inputs_ and _outputs_ of a function
+* The signature defines the generic _inputs_ and _outputs_ of a function
 
 ```python
 signature = tf.saved_model.signature_def_utils.predict_signature_def(
@@ -459,7 +459,7 @@ builder.add_meta_graph_and_variables(
 
 # Exporting the Model
 
-* The _SavedModelBuilder_ will export your model to a predefined ProtoBuf format
+* The _SavedModelBuilder_ will export your model to a predefined Protobuf format
 
 ```python
 export_path_base = '/tmp/amazon_reviews'
@@ -482,11 +482,11 @@ class: center, middle, inverse
 
 ## Exported Models
 
-* You should find these protobuf files in your folder structure
+* You should find these Protobuf files in your folder structure
 
 .center[![Exported model](images/folders.png)]
 
-* The files should include a 
+* The files should include a: 
 
     * saved_model.pb
 
@@ -557,7 +557,7 @@ $[docker bash] tensorflow_model_server --port=8500
 
 --
 
-* This should generate similar output like this 
+* This should generate output like below 
 
 .small[
 ```terminal
@@ -801,7 +801,7 @@ request.model_spec.version.value = 1
 
 # Tensorflow Serving Client
 
-## Obtain model meta data
+## Obtain model metadata
 
 ```python
 def get_model_meta(model_name, stub):
