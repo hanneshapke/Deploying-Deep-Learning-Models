@@ -1,3 +1,4 @@
+import sys
 from grpc.beta import implementations
 import tensorflow as tf
 from tensorflow_serving.apis import predict_pb2
@@ -37,7 +38,8 @@ if __name__ == '__main__':
     stub = get_stub()
     while True:
         print("\nEnter an Amazon review [:q for Quit]")
-        sentence = input()
+        if sys.version_info[0] < 3:
+            sentence = raw_input() if sys.version_info[0] < 3 else input()
         if sentence == ':q':
             break
         model_input = clean_data_encoded(sentence)

@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 from keras.models import model_from_json
 from constants import CHARS, MAX_TOKENS
@@ -35,7 +36,8 @@ if __name__ == '__main__':
 
     while True:
         print("\nEnter an Amazon review [:q for Quit]")
-        sentence = input()
+	if sys.version_info[0] < 3:
+	    sentence = raw_input() if sys.version_info[0] < 3 else input()
         if sentence == ':q':
             break
         model_input = clean_data_encoded(sentence)

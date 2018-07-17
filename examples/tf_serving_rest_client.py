@@ -1,6 +1,6 @@
 import json
 import requests
-
+import sys
 
 def get_rest_url(model_name, host='127.0.1', port='8501', verb='predict', version=None):
     url = "http://{host}:{port}/v1/models/{model_name}".format(host=host, port=port, model_name=model_name)
@@ -31,7 +31,8 @@ if __name__ == '__main__':
     
     while True:
         print("\nEnter an Amazon review [:q for Quit]")
-        sentence = input()
+        if sys.version_info[0] < 3:
+            sentence = raw_input() if sys.version_info[0] < 3 else input()
         if sentence == ':q':
             break
         model_input = clean_data_encoded(sentence)
